@@ -17,7 +17,8 @@ enum ProcessRunner {
         timeout: TimeInterval?,
         idleTimeout: TimeInterval?,
         streamOutput: Bool,
-        interactive: Bool
+        interactive: Bool,
+        outputHandler: (@Sendable (SandboxOutput) -> Void)? = nil
     ) throws -> ProcessRunResult {
         let process = Process()
         if executable.contains("/") {
@@ -43,6 +44,7 @@ enum ProcessRunner {
             let data = handle.availableData
             guard !data.isEmpty else { return }
             output.appendStdout(data)
+            outputHandler?(.stdout(data))
             if streamOutput {
                 FileHandle.standardOutput.write(data)
             }
@@ -51,6 +53,7 @@ enum ProcessRunner {
             let data = handle.availableData
             guard !data.isEmpty else { return }
             output.appendStderr(data)
+            outputHandler?(.stderr(data))
             if streamOutput {
                 FileHandle.standardError.write(data)
             }

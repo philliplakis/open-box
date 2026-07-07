@@ -61,7 +61,7 @@ openbox run --workspace ~/src/my-app -- npm test
 Limit runtime:
 
 ```bash
-openbox run --timeout 120 -- swift test
+openbox run --image docker.io/library/swift:6.3-noble --timeout 120 -- swift test
 ```
 
 Stop a command that produces no output for too long:

@@ -39,25 +39,30 @@ openbox run --workspace "$PWD" --tty -- bash
 - Prefer a single purposeful command over starting background services.
 - Use `--name` only when you need `openbox status` or `openbox stop`.
 
-## Installed Runtimes
+## Installed Tools
 
 The default OpenBox image includes:
 
-- Swift: `swift`, `swiftc`
 - JavaScript/TypeScript: `node`, `npm`, `npx`, `bun`
-- Python: `python3`, `pip`, `uv`, `uvx`
-- Go: `go`
-- Rust: `rustc`, `cargo`
-- C/C++: `cc`, `c++`, `make`, `cmake`
+- Python: `python3`, `uv`, `uvx`
 - Shell: `bash`, `zsh`, POSIX tools
 - Data/dev tools: `sqlite3`, `jq`, `ripgrep`, `git`, `gh`
+
+Heavy language toolchains are intentionally not bundled in the default image.
+Use `--image` when a project needs one:
+
+```bash
+openbox run --image docker.io/library/swift:6.3-noble --workspace "$PWD" --timeout 600 -- swift test
+openbox run --image docker.io/library/golang:bookworm --workspace "$PWD" --timeout 600 -- go test ./...
+openbox run --image docker.io/library/rust:bookworm --workspace "$PWD" --timeout 600 -- cargo test
+```
 
 ## Common Tasks
 
 Run Swift tests:
 
 ```bash
-openbox run --workspace "$PWD" --timeout 600 -- swift test
+openbox run --image docker.io/library/swift:6.3-noble --workspace "$PWD" --timeout 600 -- swift test
 ```
 
 Run Node/npm checks:
@@ -87,20 +92,19 @@ openbox run --workspace "$PWD" --timeout 300 -- uv run python script.py
 Run Go:
 
 ```bash
-openbox run --workspace "$PWD" --timeout 600 -- go test ./...
+openbox run --image docker.io/library/golang:bookworm --workspace "$PWD" --timeout 600 -- go test ./...
 ```
 
 Run Rust:
 
 ```bash
-openbox run --workspace "$PWD" --timeout 600 -- cargo test
+openbox run --image docker.io/library/rust:bookworm --workspace "$PWD" --timeout 600 -- cargo test
 ```
 
-Build C/C++ with CMake:
+Build C/C++ with make:
 
 ```bash
-openbox run --workspace "$PWD" --timeout 600 -- cmake -S . -B build
-openbox run --workspace "$PWD" --timeout 600 -- cmake --build build
+openbox run --image docker.io/library/gcc:bookworm --workspace "$PWD" --timeout 600 -- make test
 ```
 
 Query SQLite:

@@ -71,6 +71,29 @@ let result = try await SandboxRunner().run(
 print(result.stdout)
 ```
 
+Report image pulls and live process output:
+
+```swift
+let runner = SandboxRunner(eventHandler: { event in
+    switch event {
+    case .pullingImage(let image):
+        print("Pulling \(image)...")
+    case .output(.stdout(let data)):
+        FileHandle.standardOutput.write(data)
+    case .output(.stderr(let data)):
+        FileHandle.standardError.write(data)
+    }
+})
+
+let result = try await runner.run(
+    options: SandboxRunOptions(command: ["echo", "hello"])
+)
+```
+
+OpenBox pulls the image before starting the sandbox when it is not already
+available locally. The callback receives the `pullingImage` event first, then
+the plain pull output as stderr/stdout events.
+
 Build and test it:
 
 ```bash
@@ -103,7 +126,11 @@ let session = try await SandboxTerminalSession.start(
     ),
     columns: 80,
     rows: 24
-)
+) { event in
+    if case .pullingImage(let image) = event {
+        terminalView.feed(Data("Pulling \(image)...\r\n".utf8))
+    }
+}
 
 Task {
     for await data in session.output {

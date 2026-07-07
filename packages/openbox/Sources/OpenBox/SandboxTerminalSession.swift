@@ -32,7 +32,8 @@ public final class SandboxTerminalSession: @unchecked Sendable {
         columns: Int = 80,
         rows: Int = 24,
         containerExecutable: String = "container",
-        hostEnvironment: [String: String] = ProcessInfo.processInfo.environment
+        hostEnvironment: [String: String] = ProcessInfo.processInfo.environment,
+        eventHandler: (@Sendable (SandboxEvent) -> Void)? = nil
     ) async throws -> SandboxTerminalSession {
         try await Task.detached {
             try startSync(
@@ -40,7 +41,8 @@ public final class SandboxTerminalSession: @unchecked Sendable {
                 columns: columns,
                 rows: rows,
                 containerExecutable: containerExecutable,
-                hostEnvironment: hostEnvironment
+                hostEnvironment: hostEnvironment,
+                eventHandler: eventHandler
             )
         }.value
     }
@@ -68,7 +70,8 @@ private func startSync(
     columns: Int,
     rows: Int,
     containerExecutable: String,
-    hostEnvironment: [String: String]
+    hostEnvironment: [String: String],
+    eventHandler: (@Sendable (SandboxEvent) -> Void)?
 ) throws -> SandboxTerminalSession {
     var launchOptions = options
     launchOptions.interactive = true
@@ -92,6 +95,14 @@ private func startSync(
             enabled: launchOptions.stageProtectedWorkspace
         )
         stagedWorkspace = preparedWorkspace
+
+        try pullImageIfNeeded(
+            launchOptions.image,
+            containerExecutable: containerExecutable,
+            environment: hostEnvironment,
+            streamOutput: false,
+            eventHandler: eventHandler
+        )
 
         let arguments = try ContainerArguments.run(
             options: launchOptions,

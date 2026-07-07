@@ -1,4 +1,4 @@
-FROM swift:6.3-noble
+FROM ubuntu:noble
 LABEL org.opencontainers.image.source="https://github.com/philliplakis/open-box"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BUN_INSTALL=/opt/bun
@@ -19,12 +19,13 @@ RUN apt-get update \
         > /etc/apt/sources.list.d/github-cli.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        bash build-essential cargo cmake file findutils git gh golang-go jq less \
-        nodejs openssh-client patch pkg-config procps python3 python3-pip \
-        python3-venv ripgrep rustc sqlite3 sudo tar tree unzip vim wget zip zsh \
+        bash ca-certificates curl file findutils git gh jq less \
+        nodejs openssh-client patch procps python3 python3-venv \
+        ripgrep sqlite3 sudo tar tree unzip vim wget zip zsh \
     && npm install -g @anthropic-ai/claude-code @google/gemini-cli @openai/codex global-agent \
     && curl -fsSL https://bun.sh/install | bash -s -- bun-v1.3.14 \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
+    && apt-get purge -y --auto-remove gpg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 

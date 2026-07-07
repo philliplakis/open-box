@@ -147,6 +147,16 @@ public struct SandboxStatus: Sendable, Equatable {
     public var description: String
 }
 
+public enum SandboxOutput: Sendable {
+    case stdout(Data)
+    case stderr(Data)
+}
+
+public enum SandboxEvent: Sendable {
+    case pullingImage(String)
+    case output(SandboxOutput)
+}
+
 public enum SandboxError: Error, CustomStringConvertible, Equatable {
     case invalidOptions(String)
     case commandFailed([String], Int32, String)
@@ -171,15 +181,18 @@ public struct SandboxRunner: Sendable {
     public var containerExecutable: String
     public var hostEnvironment: [String: String]
     public var streamOutput: Bool
+    public var eventHandler: (@Sendable (SandboxEvent) -> Void)?
 
     public init(
         containerExecutable: String = "container",
         hostEnvironment: [String: String] = ProcessInfo.processInfo.environment,
-        streamOutput: Bool = false
+        streamOutput: Bool = false,
+        eventHandler: (@Sendable (SandboxEvent) -> Void)? = nil
     ) {
         self.containerExecutable = containerExecutable
         self.hostEnvironment = hostEnvironment
         self.streamOutput = streamOutput
+        self.eventHandler = eventHandler
     }
 
     public func run(options: SandboxRunOptions) async throws -> SandboxResult {
@@ -197,7 +210,8 @@ public struct SandboxRunner: Sendable {
                 timeout: 30,
                 idleTimeout: nil,
                 streamOutput: self.streamOutput,
-                interactive: false
+                interactive: false,
+                outputHandler: { self.eventHandler?(.output($0)) }
             )
             guard result.exitCode == 0 else {
                 throw SandboxError.commandFailed(["container", "stop", name], result.exitCode, result.stderr)
@@ -232,7 +246,8 @@ public struct SandboxRunner: Sendable {
                 timeout: 120,
                 idleTimeout: nil,
                 streamOutput: self.streamOutput,
-                interactive: false
+                interactive: false,
+                outputHandler: { self.eventHandler?(.output($0)) }
             )
             guard result.exitCode == 0 else {
                 throw SandboxError.commandFailed(["container", "prune"], result.exitCode, result.stderr)
@@ -259,6 +274,14 @@ public struct SandboxRunner: Sendable {
         )
         defer { try? stagedWorkspace.cleanup() }
 
+        try pullImageIfNeeded(
+            options.image,
+            containerExecutable: containerExecutable,
+            environment: hostEnvironment,
+            streamOutput: streamOutput,
+            eventHandler: eventHandler
+        )
+
         let arguments = try ContainerArguments.run(
             options: options,
             name: name,
@@ -272,7 +295,8 @@ public struct SandboxRunner: Sendable {
             timeout: options.timeoutSeconds,
             idleTimeout: options.idleTimeoutSeconds,
             streamOutput: streamOutput,
-            interactive: options.interactive
+            interactive: options.interactive,
+            outputHandler: { eventHandler?(.output($0)) }
         )
 
         if result.timedOut || result.idleTimedOut {
@@ -299,6 +323,40 @@ public struct SandboxRunner: Sendable {
             timedOut: result.timedOut,
             idleTimedOut: result.idleTimedOut
         )
+    }
+}
+
+func pullImageIfNeeded(
+    _ image: String,
+    containerExecutable: String,
+    environment: [String: String],
+    streamOutput: Bool,
+    eventHandler: (@Sendable (SandboxEvent) -> Void)?
+) throws {
+    let inspect = try ProcessRunner.run(
+        executable: containerExecutable,
+        arguments: ["image", "inspect", image],
+        environment: environment,
+        timeout: 30,
+        idleTimeout: nil,
+        streamOutput: false,
+        interactive: false
+    )
+    guard inspect.exitCode != 0 else { return }
+
+    eventHandler?(.pullingImage(image))
+    let pull = try ProcessRunner.run(
+        executable: containerExecutable,
+        arguments: ["image", "pull", "--progress", "plain", image],
+        environment: environment,
+        timeout: nil,
+        idleTimeout: nil,
+        streamOutput: streamOutput,
+        interactive: false,
+        outputHandler: { eventHandler?(.output($0)) }
+    )
+    guard pull.exitCode == 0 else {
+        throw SandboxError.commandFailed(["container", "image", "pull", image], pull.exitCode, pull.stderr)
     }
 }
 

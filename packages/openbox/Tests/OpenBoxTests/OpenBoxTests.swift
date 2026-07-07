@@ -56,6 +56,44 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertTrue(args.contains { $0.contains("source=/tmp/staged-workspace") })
     }
 
+    func testMissingImagePullReportsEvents() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("openbox-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let fakeContainer = dir.appendingPathComponent("container")
+        try """
+        #!/bin/sh
+        if [ "$1 $2" = "image inspect" ]; then exit 1; fi
+        if [ "$1 $2" = "image pull" ]; then echo pulling "$5" >&2; exit 0; fi
+        exit 2
+        """.write(to: fakeContainer, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: fakeContainer.path(percentEncoded: false)
+        )
+
+        let events = EventRecorder()
+        try pullImageIfNeeded(
+            "example/image:latest",
+            containerExecutable: fakeContainer.path(percentEncoded: false),
+            environment: [:],
+            streamOutput: false
+        ) { event in
+            switch event {
+            case .pullingImage(let image):
+                events.append("pulling \(image)")
+            case .output(.stderr(let data)):
+                events.append(String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines))
+            case .output(.stdout):
+                break
+            }
+        }
+
+        XCTAssertEqual(events.values, ["pulling example/image:latest", "pulling example/image:latest"])
+    }
+
     func testProtectedWorkspaceDetection() {
         let home = FileManager.default.homeDirectoryForCurrentUser.path(percentEncoded: false)
 
@@ -87,5 +125,22 @@ final class OpenBoxTests: XCTestCase {
         reader.cancel()
         pty.terminate()
         _ = try await pty.wait()
+    }
+}
+
+private final class EventRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [String] = []
+
+    var values: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return items
+    }
+
+    func append(_ value: String) {
+        lock.lock()
+        items.append(value)
+        lock.unlock()
     }
 }

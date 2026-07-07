@@ -20,7 +20,11 @@ enum OpenBoxCLI {
         }
         args.removeFirst()
 
-        let runner = SandboxRunner(streamOutput: true)
+        let runner = SandboxRunner(streamOutput: true) { event in
+            if case .pullingImage(let image) = event {
+                fputs("openbox: pulling image \(image)\n", stderr)
+            }
+        }
         switch command {
         case "run":
             let options = try parseRun(args)
