@@ -4,6 +4,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "deploy:web": "bun --cwd apps/web run deploy",
+    "deploy:web:preview": "bun --cwd apps/web run deploy:preview",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
