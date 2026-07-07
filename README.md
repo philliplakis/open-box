@@ -50,6 +50,21 @@ Import from GitHub:
 .package(url: "https://github.com/philliplakis/open-box.git", branch: "main")
 ```
 
+Use from Swift:
+
+```swift
+import OpenBox
+
+let result = try await SandboxRunner().run(
+    options: SandboxRunOptions(
+        workspace: URL(fileURLWithPath: "/path/to/project"),
+        command: ["echo", "hello"]
+    )
+)
+
+print(result.stdout)
+```
+
 Build and test it:
 
 ```bash
@@ -61,6 +76,22 @@ Run a command in the sandbox:
 ```bash
 swift run openbox run -- echo ok
 ```
+
+Open an interactive shell:
+
+```bash
+swift run openbox run --tty -- bash
+```
+
+Forward your host SSH agent for GitHub SSH auth:
+
+```bash
+swift run openbox run --ssh-agent -- git clone git@github.com:philliplakis/private-repo.git
+```
+
+`--ssh-agent` is for auth forwarding, not SSH login into the container. For
+local terminal access, use `--tty -- sh` or `--tty -- bash` instead of running
+`sshd`.
 
 The CLI forwards allowlisted local token environment variables into a read-only
 YAML file at `/run/openbox/tokens.yaml` inside the container. Defaults:

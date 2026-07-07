@@ -1,5 +1,5 @@
 FROM swift:6.3-noble
-
+LABEL org.opencontainers.image.source="https://github.com/philliplakis/open-box"
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
