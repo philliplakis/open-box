@@ -1,24 +1,44 @@
 {
     "configurations": [
-        {
-            "type": "swift",
-            "request": "launch",
-            "args": [],
-            "cwd": "${workspaceFolder:open-box}/packages/openbox",
-            "name": "Debug openbox (packages/openbox)",
-            "target": "openbox",
-            "configuration": "debug",
-            "preLaunchTask": "swift: Build Debug openbox (packages/openbox)"
-        },
-        {
-            "type": "swift",
-            "request": "launch",
-            "args": [],
-            "cwd": "${workspaceFolder:open-box}/packages/openbox",
-            "name": "Release openbox (packages/openbox)",
-            "target": "openbox",
-            "configuration": "release",
-            "preLaunchTask": "swift: Build Release openbox (packages/openbox)"
-        }
+      {
+        "type": "swift",
+        "request": "launch",
+        "args": [],
+        "cwd": "${workspaceFolder:open-box}/packages/openbox",
+        "name": "Debug openbox (packages/openbox)",
+        "target": "openbox",
+        "configuration": "debug",
+        "preLaunchTask": "swift: Build Debug openbox (packages/openbox)"
+      },
+      {
+        "type": "swift",
+        "request": "launch",
+        "args": [],
+        "cwd": "${workspaceFolder:open-box}/packages/openbox",
+        "name": "Release openbox (packages/openbox)",
+        "target": "openbox",
+        "configuration": "release",
+        "preLaunchTask": "swift: Build Release openbox (packages/openbox)"
+      },
+      {
+        "type": "swift",
+        "request": "launch",
+        "args": [],
+        "cwd": "${workspaceFolder:open-box}",
+        "name": "Debug openbox",
+        "target": "openbox",
+        "configuration": "debug",
+        "preLaunchTask": "swift: Build Debug openbox"
+      },
+      {
+        "type": "swift",
+        "request": "launch",
+        "args": [],
+        "cwd": "${workspaceFolder:open-box}",
+        "name": "Release openbox",
+        "target": "openbox",
+        "configuration": "release",
+        "preLaunchTask": "swift: Build Release openbox"
+      }
     ]
 }

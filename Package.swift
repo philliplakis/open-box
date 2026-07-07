@@ -12,14 +12,19 @@ let package = Package(
         .executable(name: "openbox", targets: ["OpenBoxCLI"]),
     ],
     targets: [
-        .target(name: "OpenBox"),
+        .target(
+            name: "OpenBox",
+            path: "packages/openbox/Sources/OpenBox"
+        ),
         .executableTarget(
             name: "OpenBoxCLI",
-            dependencies: ["OpenBox"]
+            dependencies: ["OpenBox"],
+            path: "packages/openbox/Sources/OpenBoxCLI"
         ),
         .testTarget(
             name: "OpenBoxTests",
-            dependencies: ["OpenBox"]
+            dependencies: ["OpenBox"],
+            path: "packages/openbox/Tests/OpenBoxTests"
         ),
     ]
 )

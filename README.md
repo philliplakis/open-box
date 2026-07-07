@@ -41,19 +41,25 @@ Create a new directory under `apps/` with its own `package.json`. It will be pic
 
 ## Apple container sandbox
 
-The embeddable sandbox lives in `packages/openbox`.
+The embeddable Swift package is exposed from the repo root.
 It requires macOS 26+ with Apple's `container` CLI available on `PATH`.
+
+Import from GitHub:
+
+```swift
+.package(url: "https://github.com/philliplakis/open-box.git", branch: "main")
+```
 
 Build and test it:
 
 ```bash
-swift test --package-path packages/openbox
+swift test
 ```
 
 Run a command in the sandbox:
 
 ```bash
-swift run --package-path packages/openbox openbox run -- echo ok
+swift run openbox run -- echo ok
 ```
 
 The CLI forwards allowlisted local token environment variables into a read-only
