@@ -62,4 +62,30 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertTrue(WorkspaceStager.shouldStage(URL(fileURLWithPath: "\(home)/Documents/project")))
         XCTAssertFalse(WorkspaceStager.shouldStage(URL(fileURLWithPath: "/tmp/project")))
     }
+
+    func testPTYProcessRoundTrip() async throws {
+        let pty = try PTYProcess.start(
+            executable: "/bin/cat",
+            arguments: [],
+            environment: ProcessInfo.processInfo.environment,
+            columns: 80,
+            rows: 24
+        )
+        let received = expectation(description: "received terminal output")
+
+        let reader = Task {
+            for await data in pty.output {
+                if String(decoding: data, as: UTF8.self).contains("hello") {
+                    received.fulfill()
+                    break
+                }
+            }
+        }
+
+        try pty.write(Data("hello\n".utf8))
+        await fulfillment(of: [received], timeout: 2)
+        reader.cancel()
+        pty.terminate()
+        _ = try await pty.wait()
+    }
 }

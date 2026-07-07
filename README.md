@@ -44,6 +44,12 @@ Create a new directory under `apps/` with its own `package.json`. It will be pic
 The embeddable Swift package is exposed from the repo root.
 It requires macOS 26+ with Apple's `container` CLI available on `PATH`.
 
+Detailed docs:
+
+- [CLI usage](docs/cli.md)
+- [Agent guide](docs/agents.md)
+- [Homebrew tap](docs/homebrew.md)
+
 Import from GitHub:
 
 ```swift
@@ -82,6 +88,38 @@ Open an interactive shell:
 ```bash
 swift run openbox run --tty -- bash
 ```
+
+Use a SwiftTerm view from a macOS app:
+
+```swift
+import OpenBox
+import SwiftTerm
+
+let session = try await SandboxTerminalSession.start(
+    options: SandboxRunOptions(
+        workspace: projectURL,
+        command: ["bash"],
+        removeWhenStopped: true
+    ),
+    columns: 80,
+    rows: 24
+)
+
+Task {
+    for await data in session.output {
+        terminalView.feed(data)
+    }
+}
+
+// Call from SwiftTerm's input callback.
+try session.write(inputData)
+
+// Call when the terminal view resizes.
+try session.resize(columns: columns, rows: rows)
+```
+
+OpenBox owns the PTY/container bridge. Your app owns SwiftTerm, so OpenBox does
+not force a UI dependency on CLI users.
 
 Forward your host SSH agent for GitHub SSH auth:
 

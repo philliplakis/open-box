@@ -150,6 +150,7 @@ public struct SandboxStatus: Sendable, Equatable {
 public enum SandboxError: Error, CustomStringConvertible, Equatable {
     case invalidOptions(String)
     case commandFailed([String], Int32, String)
+    case systemCall(String, Int32)
     case timeout(String)
 
     public var description: String {
@@ -158,6 +159,8 @@ public enum SandboxError: Error, CustomStringConvertible, Equatable {
             message
         case .commandFailed(let command, let code, let stderr):
             "\(command.joined(separator: " ")) failed with exit code \(code): \(stderr)"
+        case .systemCall(let name, let code):
+            "\(name) failed with errno \(code)"
         case .timeout(let message):
             message
         }

@@ -1,6 +1,8 @@
 FROM swift:6.3-noble
 LABEL org.opencontainers.image.source="https://github.com/philliplakis/open-box"
 ENV DEBIAN_FRONTEND=noninteractive
+ENV BUN_INSTALL=/opt/bun
+ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -21,6 +23,7 @@ RUN apt-get update \
         nodejs openssh-client patch pkg-config procps python3 python3-pip \
         python3-venv ripgrep rustc sqlite3 sudo tar tree unzip vim wget zip zsh \
     && npm install -g @anthropic-ai/claude-code @google/gemini-cli @openai/codex global-agent \
+    && curl -fsSL https://bun.sh/install | bash -s -- bun-v1.3.14 \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
