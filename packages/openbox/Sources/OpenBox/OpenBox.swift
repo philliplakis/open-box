@@ -239,6 +239,7 @@ public struct SandboxRunner: Sendable {
 
     public func cleanCache() async throws {
         try await Task.detached {
+            try self.stopOpenBoxContainers()
             let result = try ProcessRunner.run(
                 executable: self.containerExecutable,
                 arguments: ["prune"],
@@ -253,6 +254,41 @@ public struct SandboxRunner: Sendable {
                 throw SandboxError.commandFailed(["container", "prune"], result.exitCode, result.stderr)
             }
         }.value
+    }
+
+    private func stopOpenBoxContainers() throws {
+        let list = try ProcessRunner.run(
+            executable: containerExecutable,
+            arguments: ["list", "--quiet"],
+            environment: hostEnvironment,
+            timeout: 30,
+            idleTimeout: nil,
+            streamOutput: false,
+            interactive: false
+        )
+        guard list.exitCode == 0 else {
+            throw SandboxError.commandFailed(["container", "list", "--quiet"], list.exitCode, list.stderr)
+        }
+
+        let names = list.stdout
+            .split(whereSeparator: \.isNewline)
+            .map(String.init)
+            .filter { $0.hasPrefix("openbox-") }
+        guard !names.isEmpty else { return }
+
+        let stop = try ProcessRunner.run(
+            executable: containerExecutable,
+            arguments: ["stop"] + names,
+            environment: hostEnvironment,
+            timeout: 60,
+            idleTimeout: nil,
+            streamOutput: streamOutput,
+            interactive: false,
+            outputHandler: { eventHandler?(.output($0)) }
+        )
+        guard stop.exitCode == 0 else {
+            throw SandboxError.commandFailed(["container", "stop"] + names, stop.exitCode, stop.stderr)
+        }
     }
 
     private func runSync(options: SandboxRunOptions) throws -> SandboxResult {
@@ -286,6 +322,7 @@ public struct SandboxRunner: Sendable {
             options: options,
             name: name,
             tokenFile: tokenFile,
+            tokenEnvironment: tokens,
             workspaceSource: stagedWorkspace.mountSource
         )
         let result = try ProcessRunner.run(
@@ -365,6 +402,7 @@ enum ContainerArguments {
         options: SandboxRunOptions,
         name: String,
         tokenFile: URL,
+        tokenEnvironment: [String: String] = [:],
         workspaceSource: URL? = nil
     ) throws -> [String] {
         try options.validate()
@@ -387,6 +425,9 @@ enum ContainerArguments {
             "--env", "OPENBOX_TOKENS_YAML=\(options.tokenYAMLPath)",
             "--env", "IS_SANDBOX=1",
         ]
+        for key in tokenEnvironment.keys.sorted() {
+            arguments.append(contentsOf: ["--env", "\(key)=\(tokenEnvironment[key] ?? "")"])
+        }
 
         if options.removeWhenStopped {
             arguments.append("--rm")
@@ -490,11 +531,21 @@ enum WorkspaceStager {
 }
 
 enum TokenYAML {
-    static func collect(allowlist: [String], from environment: [String: String]) -> [String: String] {
+    static func collect(
+        allowlist: [String],
+        from environment: [String: String],
+        githubTokenProvider: (([String: String]) -> String?)? = nil
+    ) -> [String: String] {
         var tokens: [String: String] = [:]
         for key in allowlist where isValidEnvironmentKey(key) {
             if let value = environment[key], !value.isEmpty {
                 tokens[key] = value
+            }
+        }
+        if tokens["GH_TOKEN"] == nil, allowlist.contains("GH_TOKEN") {
+            let token = (githubTokenProvider ?? ghAuthToken)(environment)
+            if let token, !token.isEmpty {
+                tokens["GH_TOKEN"] = token
             }
         }
         return tokens
@@ -543,5 +594,23 @@ enum TokenYAML {
             }
         }
         return "\"\(escaped)\""
+    }
+
+    private static func ghAuthToken(environment: [String: String]) -> String? {
+        do {
+            let result = try ProcessRunner.run(
+                executable: "gh",
+                arguments: ["auth", "token"],
+                environment: environment,
+                timeout: 5,
+                idleTimeout: nil,
+                streamOutput: false,
+                interactive: false
+            )
+            guard result.exitCode == 0 else { return nil }
+            return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            return nil
+        }
     }
 }

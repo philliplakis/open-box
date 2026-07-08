@@ -90,7 +90,7 @@ openbox status my-job
 openbox stop my-job
 ```
 
-Clean stopped containers:
+Stop leaked `openbox-*` containers and clean stopped containers:
 
 ```bash
 openbox cache clean
@@ -98,8 +98,9 @@ openbox cache clean
 
 ## Secrets
 
-By default, OpenBox writes these host environment variables into a read-only
-YAML file at `/run/openbox/tokens.yaml` inside the container when they are set:
+By default, OpenBox forwards these host environment variables into the
+container when they are set, and also writes them into a read-only YAML file at
+`/run/openbox/tokens.yaml`:
 
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
@@ -107,10 +108,13 @@ YAML file at `/run/openbox/tokens.yaml` inside the container when they are set:
 - `GITHUB_TOKEN`
 - `GH_TOKEN`
 
+If `GH_TOKEN` is not set but the GitHub CLI is authenticated on the host,
+OpenBox uses `gh auth token` automatically.
+
 Add another env var:
 
 ```bash
-MY_SERVICE_TOKEN=... openbox run --env MY_SERVICE_TOKEN -- printenv OPENBOX_TOKENS_YAML
+MY_SERVICE_TOKEN=... openbox run --env MY_SERVICE_TOKEN -- printenv MY_SERVICE_TOKEN
 ```
 
 Disable defaults and pass only explicit names:
@@ -119,8 +123,8 @@ Disable defaults and pass only explicit names:
 openbox run --no-default-env --env GITHUB_TOKEN -- gh auth status
 ```
 
-Do not print token values in logs. Treat `/run/openbox/tokens.yaml` as secret
-material.
+Do not print token values in logs. Treat environment tokens and
+`/run/openbox/tokens.yaml` as secret material.
 
 ## GitHub and SSH
 

@@ -5,16 +5,22 @@ public final class SandboxTerminalSession: @unchecked Sendable {
     public let output: AsyncStream<Data>
 
     private let pty: PTYProcess
+    private let containerExecutable: String
+    private let hostEnvironment: [String: String]
     private let waitTask: Task<Int32, Error>
 
     fileprivate init(
         name: String,
         pty: PTYProcess,
+        containerExecutable: String,
+        hostEnvironment: [String: String],
         stagedWorkspace: StagedWorkspace,
         tempDir: URL
     ) {
         self.name = name
         self.pty = pty
+        self.containerExecutable = containerExecutable
+        self.hostEnvironment = hostEnvironment
         self.output = pty.output
         self.waitTask = Task {
             defer {
@@ -57,6 +63,15 @@ public final class SandboxTerminalSession: @unchecked Sendable {
 
     public func terminate() {
         pty.terminate()
+        _ = try? ProcessRunner.run(
+            executable: containerExecutable,
+            arguments: ["stop", name],
+            environment: hostEnvironment,
+            timeout: 15,
+            idleTimeout: nil,
+            streamOutput: false,
+            interactive: false
+        )
     }
 
     @discardableResult
@@ -108,6 +123,7 @@ private func startSync(
             options: launchOptions,
             name: name,
             tokenFile: tokenFile,
+            tokenEnvironment: tokens,
             workspaceSource: preparedWorkspace.mountSource
         )
         let pty = try PTYProcess.start(
@@ -120,6 +136,8 @@ private func startSync(
         return SandboxTerminalSession(
             name: name,
             pty: pty,
+            containerExecutable: containerExecutable,
+            hostEnvironment: hostEnvironment,
             stagedWorkspace: preparedWorkspace,
             tempDir: tempDir
         )

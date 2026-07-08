@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import OpenBox
 
@@ -28,6 +29,10 @@ enum OpenBoxCLI {
         switch command {
         case "run":
             let options = try parseRun(args)
+            if options.interactive {
+                let exitCode = try await runInteractive(options: options, eventHandler: runner.eventHandler)
+                Foundation.exit(exitCode)
+            }
             let result = try await runner.run(options: options)
             if result.timedOut {
                 throw SandboxError.timeout("container timed out")
@@ -57,6 +62,77 @@ enum OpenBoxCLI {
         default:
             throw SandboxError.invalidOptions("unknown command: \(command)")
         }
+    }
+
+    private static func runInteractive(
+        options: SandboxRunOptions,
+        eventHandler: (@Sendable (SandboxEvent) -> Void)?
+    ) async throws -> Int32 {
+        let size = terminalSize()
+        let session = try await SandboxTerminalSession.start(
+            options: options,
+            columns: size.columns,
+            rows: size.rows,
+            eventHandler: eventHandler
+        )
+
+        let outputTask = Task {
+            for await data in session.output {
+                FileHandle.standardOutput.write(data)
+            }
+        }
+
+        let oldTermios = try enableRawInput()
+        var completed = false
+        FileHandle.standardInput.readabilityHandler = { handle in
+            let data = handle.availableData
+            guard !data.isEmpty else {
+                session.terminate()
+                return
+            }
+            try? session.write(data)
+        }
+        defer {
+            FileHandle.standardInput.readabilityHandler = nil
+            restoreInput(oldTermios)
+            outputTask.cancel()
+            if !completed {
+                session.terminate()
+            }
+        }
+
+        let exitCode = try await session.wait()
+        await outputTask.value
+        completed = true
+        return exitCode
+    }
+
+    private static func terminalSize() -> (columns: Int, rows: Int) {
+        var size = winsize()
+        if ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) == 0, size.ws_col > 0, size.ws_row > 0 {
+            return (Int(size.ws_col), Int(size.ws_row))
+        }
+        return (80, 24)
+    }
+
+    private static func enableRawInput() throws -> termios? {
+        guard isatty(STDIN_FILENO) == 1 else { return nil }
+
+        var old = termios()
+        guard tcgetattr(STDIN_FILENO, &old) == 0 else {
+            throw SandboxError.systemCall("tcgetattr", errno)
+        }
+        var raw = old
+        cfmakeraw(&raw)
+        guard tcsetattr(STDIN_FILENO, TCSANOW, &raw) == 0 else {
+            throw SandboxError.systemCall("tcsetattr", errno)
+        }
+        return old
+    }
+
+    private static func restoreInput(_ old: termios?) {
+        guard var old else { return }
+        _ = tcsetattr(STDIN_FILENO, TCSANOW, &old)
     }
 
     private static func parseRun(_ rawArgs: [String]) throws -> SandboxRunOptions {

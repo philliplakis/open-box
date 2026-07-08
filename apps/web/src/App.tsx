@@ -93,7 +93,7 @@ Add the Swift package or clone the repo, then run swift test.
 swift run openbox run -- <command>
 
 ## Secrets
-Allowlisted tokens mount read-only at /run/openbox/tokens.yaml.`}</code></pre>
+Allowlisted tokens become env vars and mount read-only at /run/openbox/tokens.yaml.`}</code></pre>
       </section>
 
       <section className="embed" id="embed" aria-labelledby="embed-title">

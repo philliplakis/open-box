@@ -157,7 +157,7 @@ Stop a named OpenBox container:
 openbox stop <name>
 ```
 
-Clean stopped containers:
+Stop leaked `openbox-*` containers and clean stopped containers:
 
 ```bash
 openbox cache clean

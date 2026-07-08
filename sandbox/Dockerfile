@@ -19,7 +19,7 @@ RUN apt-get update \
         > /etc/apt/sources.list.d/github-cli.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        bash ca-certificates curl file findutils git gh jq less \
+        bash bubblewrap ca-certificates curl file findutils git gh jq less \
         nodejs openssh-client patch procps python3 python3-venv \
         ripgrep sqlite3 sudo tar tree unzip vim wget zip zsh \
     && npm install -g @anthropic-ai/claude-code @google/gemini-cli @openai/codex global-agent \

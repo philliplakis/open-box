@@ -14,6 +14,16 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertEqual(tokens, ["OPENAI_API_KEY": "secret"])
     }
 
+    func testTokenYAMLFallsBackToGitHubCLIForGHToken() {
+        let tokens = TokenYAML.collect(
+            allowlist: ["GH_TOKEN"],
+            from: [:],
+            githubTokenProvider: { _ in "from-gh" }
+        )
+
+        XCTAssertEqual(tokens, ["GH_TOKEN": "from-gh"])
+    }
+
     func testTokenYAMLQuoting() {
         let yaml = TokenYAML.render([
             "A": "line\nquote\"slash\\tab\t"
@@ -43,6 +53,7 @@ final class OpenBoxTests: XCTestCase {
             options: options,
             name: "test-container",
             tokenFile: tokenFile,
+            tokenEnvironment: ["OPENAI_API_KEY": "secret"],
             workspaceSource: URL(fileURLWithPath: "/tmp/staged-workspace")
         )
 
@@ -54,6 +65,7 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertTrue(args.contains { $0.contains("target=/workspace") })
         XCTAssertTrue(args.contains { $0.contains("target=/run/openbox") && $0.contains("readonly") })
         XCTAssertTrue(args.contains { $0.contains("source=/tmp/staged-workspace") })
+        XCTAssertTrue(args.contains("OPENAI_API_KEY=secret"))
     }
 
     func testMissingImagePullReportsEvents() throws {
@@ -92,6 +104,41 @@ final class OpenBoxTests: XCTestCase {
         }
 
         XCTAssertEqual(events.values, ["pulling example/image:latest", "pulling example/image:latest"])
+    }
+
+    func testCleanCacheStopsRunningOpenBoxContainersBeforePrune() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("openbox-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let record = dir.appendingPathComponent("record")
+        let fakeContainer = dir.appendingPathComponent("container")
+        try """
+        #!/bin/sh
+        echo "$*" >> "$RECORD"
+        if [ "$1 $2" = "list --quiet" ]; then
+          echo openbox-running
+          echo other-container
+          exit 0
+        fi
+        if [ "$1" = "stop" ]; then exit 0; fi
+        if [ "$1" = "prune" ]; then exit 0; fi
+        exit 2
+        """.write(to: fakeContainer, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: fakeContainer.path(percentEncoded: false)
+        )
+
+        let runner = SandboxRunner(
+            containerExecutable: fakeContainer.path(percentEncoded: false),
+            hostEnvironment: ["RECORD": record.path(percentEncoded: false)]
+        )
+        try await runner.cleanCache()
+
+        let calls = try String(contentsOf: record, encoding: .utf8)
+        XCTAssertEqual(calls, "list --quiet\nstop openbox-running\nprune\n")
     }
 
     func testProtectedWorkspaceDetection() {
