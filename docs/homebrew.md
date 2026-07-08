@@ -1,21 +1,38 @@
 # Homebrew Tap
 
-Use a separate tap repo:
+OpenBox ships via a custom Homebrew tap:
 
 ```text
 philliplakis/homebrew-open-box
 ```
 
-That gives users this install command:
+## Install
+
+One-liner:
 
 ```bash
 brew install philliplakis/open-box/openbox
 ```
 
-Homebrew tap docs recommend GitHub tap repos start with `homebrew-`, and
-Homebrew formulae live under `Formula/`.
+Or tap once, then use the bare formula name:
 
-## Create the Tap
+```bash
+brew tap philliplakis/open-box
+brew install openbox
+```
+
+A bare `brew install openbox` without tapping first only works for
+`homebrew-core` formulae. OpenBox is distributed from this tap because it
+targets macOS 26 / Apple Silicon and depends on Apple's `container` CLI.
+
+## Requirements
+
+- macOS 26+ (Tahoe)
+- Apple Silicon
+- Xcode / Swift toolchain (build-from-source formula)
+- Apple's `container` CLI on `PATH` at runtime
+
+## Create the Tap (one-time)
 
 ```bash
 brew tap-new philliplakis/open-box
@@ -25,65 +42,42 @@ gh repo create philliplakis/homebrew-open-box \
   --push
 ```
 
-## Tag an OpenBox Release
+Add a repository secret on `philliplakis/open-box` named
+`HOMEBREW_TAP_TOKEN`. Use a GitHub PAT with `contents:write` on
+`philliplakis/homebrew-open-box`. The bump workflow uses that token to push
+`Formula/openbox.rb` into the tap after each release.
 
-Formulae should point at a stable tagged source archive, not `main`.
+## Release Flow
+
+1. Tag a release in this repo:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Get the checksum:
+2. `.github/workflows/release.yml` creates the GitHub Release for the tag.
+3. `.github/workflows/bump-tap.yml` downloads the source archive, computes its
+   `sha256`, renders [`Formula/openbox.rb`](../Formula/openbox.rb), and pushes
+   it to `philliplakis/homebrew-open-box`.
 
-```bash
-curl -L https://github.com/philliplakis/open-box/archive/refs/tags/v0.1.0.tar.gz \
-  | shasum -a 256
-```
+The formula in this repo is the source of truth. The tap copy is updated by CI
+and should not be edited by hand unless you are recovering from a failed bump.
 
 ## Formula
 
-Create this in the tap repo:
+Canonical formula: [`Formula/openbox.rb`](../Formula/openbox.rb)
 
-```text
-Formula/openbox.rb
-```
+It builds the `openbox` executable from source:
 
 ```ruby
-class Openbox < Formula
-  desc "Apple-container-backed local sandbox for agents and Swift apps"
-  homepage "https://github.com/philliplakis/open-box"
-  url "https://github.com/philliplakis/open-box/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "PASTE_SHA256_HERE"
-  license "MIT"
-
-  depends_on macos: :tahoe
-  depends_on arch: :arm64
-  depends_on xcode: :build
-
-  def install
-    system "swift", "build", "-c", "release", "--disable-sandbox"
-    bin.install ".build/release/openbox"
-  end
-
-  def caveats
-    <<~EOS
-      OpenBox requires Apple's `container` CLI on PATH.
-
-      Verify the runtime with:
-        container system start
-        container run --rm docker.io/library/alpine:latest echo ok
-    EOS
-  end
-
-  test do
-    assert_match "openbox run", shell_output("#{bin}/openbox --help")
-  end
-end
+system "swift", "build", "-c", "release", "--disable-sandbox"
+bin.install ".build/release/openbox"
 ```
 
-Only use `license "MIT"` after adding an MIT `LICENSE` file to the main repo.
-If you choose a different license, use that SPDX identifier instead.
+Runtime caveats remind users to install Apple's `container` CLI. The formula
+test only checks `openbox --help`, so it does not require a running container
+runtime during `brew test`.
 
 ## Test Locally
 
@@ -92,23 +86,15 @@ brew install --build-from-source philliplakis/open-box/openbox
 brew test philliplakis/open-box/openbox
 ```
 
-## User Install
+## Manual Tap Bump
+
+If CI cannot push to the tap, run the bump workflow manually from the Actions
+tab (`Bump Homebrew Tap` → `workflow_dispatch`) and pass the release tag, or
+update the tap formula yourself:
 
 ```bash
-brew install philliplakis/open-box/openbox
+curl -L https://github.com/philliplakis/open-box/archive/refs/tags/v0.1.0.tar.gz \
+  | shasum -a 256
 ```
 
-Or explicitly:
-
-```bash
-brew tap philliplakis/open-box
-brew install openbox
-```
-
-## Private Repo Caveat
-
-Homebrew works best when the tap repo and source tarball are public. If
-`philliplakis/open-box` is private, the formula's `url` tarball will not
-download for users unless they have GitHub credentials configured for Homebrew.
-For broad distribution, make the source release public or publish bottles from
-the tap.
+Then set `url` and `sha256` in the tap's `Formula/openbox.rb`.

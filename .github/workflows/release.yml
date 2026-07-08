@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          notes_file="$(mktemp)"
+          {
+            echo "## OpenBox ${tag}"
+            echo
+            echo "Install with Homebrew:"
+            echo
+            echo '```bash'
+            echo "brew install philliplakis/open-box/openbox"
+            echo '```'
+            echo
+            echo "Or after tapping once:"
+            echo
+            echo '```bash'
+            echo "brew tap philliplakis/open-box"
+            echo "brew install openbox"
+            echo '```'
+            echo
+            echo "Source archive:"
+            echo "https://github.com/philliplakis/open-box/archive/refs/tags/${tag}.tar.gz"
+          } > "${notes_file}"
+
+          gh release create "${tag}" \
+            --title "OpenBox ${tag}" \
+            --notes-file "${notes_file}" \
+            --verify-tag

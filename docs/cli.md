@@ -35,14 +35,20 @@ export PATH="$HOME/.local/bin:$PATH"
 openbox --help
 ```
 
-Homebrew is the right user-facing install path once there is a tap/formula:
+With Homebrew (preferred):
 
 ```bash
 brew install philliplakis/open-box/openbox
 ```
 
-That command is not valid until the tap is published. See
-[Homebrew tap](homebrew.md).
+Or tap once, then use the bare formula name:
+
+```bash
+brew tap philliplakis/open-box
+brew install openbox
+```
+
+See [Homebrew tap](homebrew.md) for release and tap setup details.
 
 ## Run Commands
 
