@@ -6,6 +6,7 @@
 .hero,
 .command-strip,
 .grid-section,
+.agents,
 .docs,
 .embed {
   width: min(1120px, calc(100% - 40px));
@@ -132,6 +133,7 @@ code {
 
 .command-strip,
 .grid-section,
+.agents,
 .docs,
 .embed {
   border-top: 1px solid var(--line);
@@ -142,6 +144,16 @@ code {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 36px;
+}
+
+.command-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.command-note {
+  color: var(--muted);
+  font-style: normal;
 }
 
 .command-list {
@@ -198,12 +210,14 @@ code {
   font-size: 13px;
 }
 
+.agents,
 .docs {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 36px;
 }
 
+.agents h2,
 .docs h2 {
   max-width: 360px;
 }
@@ -232,11 +246,19 @@ code {
   max-width: 430px;
 }
 
+.embed-lede {
+  max-width: 430px;
+  margin-top: 18px;
+  color: var(--text);
+  font-size: 13px;
+}
+
 @media (max-width: 760px) {
   .masthead,
   .hero,
   .command-strip,
   .grid-section,
+  .agents,
   .docs,
   .embed {
     width: min(100% - 28px, 1120px);
@@ -258,6 +280,7 @@ code {
   .hero,
   .command-strip,
   .grid-section,
+  .agents,
   .docs,
   .embed {
     grid-template-columns: 1fr;
