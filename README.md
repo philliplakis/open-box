@@ -50,6 +50,19 @@ Detailed docs:
 - [Agent guide](docs/agents.md)
 - [Homebrew tap](docs/homebrew.md)
 
+Install the CLI with Homebrew:
+
+```bash
+brew install philliplakis/open-box/openbox
+```
+
+Or after tapping once:
+
+```bash
+brew tap philliplakis/open-box
+brew install openbox
+```
+
 Import from GitHub:
 
 ```swift

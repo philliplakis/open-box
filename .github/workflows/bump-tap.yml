@@ -1,0 +1,93 @@
+name: Bump Homebrew Tap
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute source archive checksum
+        id: checksum
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          url="https://github.com/philliplakis/open-box/archive/refs/tags/${TAG}.tar.gz"
+          curl -fsSL "${url}" -o /tmp/openbox-source.tar.gz
+          sha256="$(shasum -a 256 /tmp/openbox-source.tar.gz | awk '{print $1}')"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
+          echo "Computed sha256=${sha256} for ${url}"
+
+      - name: Render formula
+        env:
+          URL: ${{ steps.checksum.outputs.url }}
+          SHA256: ${{ steps.checksum.outputs.sha256 }}
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import os
+
+          formula = Path("Formula/openbox.rb").read_text()
+          lines = []
+          for line in formula.splitlines(keepends=True):
+              if line.lstrip().startswith("url "):
+                  lines.append(f'  url "{os.environ["URL"]}"\n')
+              elif line.lstrip().startswith("sha256 "):
+                  lines.append(f'  sha256 "{os.environ["SHA256"]}"\n')
+              else:
+                  lines.append(line)
+          Path("/tmp/openbox.rb").write_text("".join(lines))
+          print("".join(lines))
+          PY
+
+      - name: Push formula to tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "HOMEBREW_TAP_TOKEN secret is not set."
+            echo "Create a PAT with contents:write on philliplakis/homebrew-open-box"
+            echo "and add it as the HOMEBREW_TAP_TOKEN repository secret."
+            exit 1
+          fi
+
+          tap_dir="$(mktemp -d)"
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/philliplakis/homebrew-open-box.git" "${tap_dir}"
+          mkdir -p "${tap_dir}/Formula"
+          cp /tmp/openbox.rb "${tap_dir}/Formula/openbox.rb"
+
+          cd "${tap_dir}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- Formula/openbox.rb; then
+            echo "Formula already up to date for ${TAG}."
+            exit 0
+          fi
+
+          git add Formula/openbox.rb
+          git commit -m "openbox ${TAG}"
+          git push origin HEAD:main
