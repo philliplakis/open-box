@@ -273,7 +273,7 @@ public struct SandboxRunner: Sendable {
         let names = list.stdout
             .split(whereSeparator: \.isNewline)
             .map(String.init)
-            .filter { $0.hasPrefix("openbox-") }
+            .filter { $0.hasPrefix("openbox-") && !$0.hasPrefix("openbox-box-") }
         guard !names.isEmpty else { return }
 
         let stop = try ProcessRunner.run(
@@ -505,7 +505,7 @@ enum WorkspaceStager {
         let destinationPath = destination.path(percentEncoded: false)
         let result = try ProcessRunner.run(
             executable: "/usr/bin/rsync",
-            arguments: ["-a", trailingSlash(sourcePath), trailingSlash(destinationPath)],
+            arguments: ["-a", "--delete", "--checksum", trailingSlash(sourcePath), trailingSlash(destinationPath)],
             environment: ProcessInfo.processInfo.environment,
             timeout: nil,
             idleTimeout: nil,
@@ -527,6 +527,16 @@ enum WorkspaceStager {
             result.removeLast()
         }
         return result
+    }
+}
+
+public enum WorkspaceFiles {
+    public static func requiresStaging(_ url: URL) -> Bool {
+        WorkspaceStager.shouldStage(url)
+    }
+
+    public static func copy(from source: URL, to destination: URL) throws {
+        try WorkspaceStager.rsync(from: source, to: destination)
     }
 }
 

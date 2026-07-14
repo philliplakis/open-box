@@ -74,11 +74,13 @@ final class PTYProcess: @unchecked Sendable {
             guard !data.isEmpty else { return }
             pty.yield(data)
         }
+        process.terminationHandler = { [weak pty] process in
+            pty?.finish(.success(process.terminationStatus))
+        }
 
         do {
             try process.run()
             slaveHandle.closeFile()
-            pty.startWaiter()
             return pty
         } catch {
             masterHandle.readabilityHandler = nil
@@ -157,18 +159,12 @@ final class PTYProcess: @unchecked Sendable {
         }
     }
 
-    private func startWaiter() {
-        DispatchQueue.global().async { [self] in
-            process.waitUntilExit()
-            finish(.success(process.terminationStatus))
-        }
-    }
-
     private func yield(_ data: Data) {
         outputContinuation.yield(data)
     }
 
     private func finish(_ result: Result<Int32, Error>) {
+        process.terminationHandler = nil
         masterHandle.readabilityHandler = nil
         masterHandle.closeFile()
         outputContinuation.finish()

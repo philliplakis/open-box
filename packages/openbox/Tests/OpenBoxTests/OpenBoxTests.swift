@@ -119,6 +119,7 @@ final class OpenBoxTests: XCTestCase {
         echo "$*" >> "$RECORD"
         if [ "$1 $2" = "list --quiet" ]; then
           echo openbox-running
+          echo openbox-box-managed
           echo other-container
           exit 0
         fi
