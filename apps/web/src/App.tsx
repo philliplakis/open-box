@@ -1,7 +1,7 @@
 import './App.css'
 
 const installMethods = [
-  ['brew', 'brew install philliplakis/open-box/openbox', 'coming soon'],
+  ['brew', 'brew install philliplakis/open-box/openbox'],
   ['source', 'git clone https://github.com/philliplakis/open-box.git && cd open-box && swift build -c release'],
 ]
 
@@ -134,7 +134,7 @@ openbox run --image docker.io/library/golang:bookworm -- go test ./...`}</code><
         <pre className="doc-markdown"><code>{`# Quick start
 
 ## Install
-brew install philliplakis/open-box/openbox   # coming soon
+brew install philliplakis/open-box/openbox
 Or clone the repo and run swift build -c release.
 
 ## Run
