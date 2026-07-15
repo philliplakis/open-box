@@ -2,8 +2,8 @@ import { cpSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-const root = join(import.meta.dir, "..")
-const fixture = join(root, "fixtures", "bun-agent")
+const root = join(import.meta.dir, "..", "..")
+const fixture = join(import.meta.dir, "fixture")
 const workspacePath = mkdtempSync(join(tmpdir(), "openbox-api-smoke-"))
 cpSync(fixture, workspacePath, { recursive: true })
 const openbox = process.env.OPENBOX_BIN ?? join(root, ".build", "arm64-apple-macosx", "release", "openbox")
