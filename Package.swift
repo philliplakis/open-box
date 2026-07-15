@@ -15,6 +15,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.25.1"),
         .package(url: "https://github.com/hummingbird-project/hummingbird-websocket.git", from: "2.7.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.3"),
     ],
     targets: [
         .target(
@@ -33,6 +34,7 @@ let package = Package(
                 .product(name: "Hummingbird", package: "hummingbird"),
                 .product(name: "HummingbirdRouter", package: "hummingbird"),
                 .product(name: "HummingbirdWebSocket", package: "hummingbird-websocket"),
+                .product(name: "Logging", package: "swift-log"),
             ],
             path: "packages/openbox/Sources/OpenBoxServer"
         ),

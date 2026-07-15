@@ -186,12 +186,9 @@ swift run openbox run --ssh-agent -- git clone git@github.com:philliplakis/priva
 local terminal access, use `--tty -- sh` or `--tty -- bash` instead of running
 `sshd`.
 
-The CLI forwards allowlisted local token environment variables into the
-container, and also writes them into a read-only YAML file at
-`/run/openbox/tokens.yaml`. Defaults:
-`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `GITHUB_TOKEN`, and
-`GH_TOKEN`. If `GH_TOKEN` is not set but the host GitHub CLI is authenticated,
-OpenBox fills it from `gh auth token`.
+`openbox run` forwards no host credentials unless you explicitly pass
+`--env NAME`. When a named value is available, OpenBox forwards it and writes a
+read-only YAML file at `/run/openbox/tokens.yaml`.
 
 Apple's container runtime can hang when VirtioFS directly mounts macOS privacy
 protected folders such as `~/Documents`. The sandbox stages those workspaces

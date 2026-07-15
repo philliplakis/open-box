@@ -148,7 +148,7 @@ enum OpenBoxCLI {
         var workspace = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         var cpus = 4
         var memory = "4G"
-        var envAllowlist = SandboxRunOptions.defaultEnvironmentAllowlist
+        var envAllowlist: [String] = []
         var mounts: [SandboxMount] = []
         var timeout: TimeInterval?
         var idleTimeout: TimeInterval?
@@ -194,9 +194,6 @@ enum OpenBoxCLI {
                 memory = try requireValue()
             case "--env", "-e":
                 envAllowlist.append(try requireValue())
-            case "--no-default-env":
-                envAllowlist = []
-                index += 1
             case "--mount", "-m":
                 mounts.append(try parseMount(try requireValue()))
             case "--timeout":
@@ -290,8 +287,7 @@ enum OpenBoxCLI {
               -w, --workspace <path>   Workspace to mount at /workspace
               --cpus <n>               CPU count (default: 4)
               --memory <size>          Memory, e.g. 4G (default: 4G)
-              -e, --env <KEY>          Add a host env var to tokens.yaml
-              --no-default-env         Do not include default token env keys
+              -e, --env <KEY>          Forward one host env var and write tokens.yaml
               -m, --mount <spec>       hostpath:containerpath[:ro|rw]
               --timeout <seconds>      Kill command after this many seconds
               --idle-timeout <seconds> Kill command after no output for this many seconds

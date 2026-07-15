@@ -26,14 +26,6 @@ public struct SandboxMount: Sendable, Equatable {
 
 public struct SandboxRunOptions: Sendable, Equatable {
     public static let defaultImage = "ghcr.io/philliplakis/open-box:latest"
-    public static let defaultEnvironmentAllowlist = [
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "GOOGLE_API_KEY",
-        "GITHUB_TOKEN",
-        "GH_TOKEN",
-    ]
-
     public var image: String
     public var name: String?
     public var workspace: URL
@@ -58,7 +50,7 @@ public struct SandboxRunOptions: Sendable, Equatable {
         workspaceMountPath: String = "/workspace",
         cpus: Int = 4,
         memory: String = "4G",
-        environmentAllowlist: [String] = Self.defaultEnvironmentAllowlist,
+        environmentAllowlist: [String] = [],
         mounts: [SandboxMount] = [],
         command: [String],
         timeoutSeconds: TimeInterval? = nil,
@@ -300,9 +292,15 @@ public struct SandboxRunner: Sendable {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let tokenFile = tempDir.appendingPathComponent("tokens.yaml")
         let tokens = TokenYAML.collect(allowlist: options.environmentAllowlist, from: hostEnvironment)
-        try TokenYAML.write(tokens, to: tokenFile)
+        let tokenFile: URL?
+        if tokens.isEmpty {
+            tokenFile = nil
+        } else {
+            let file = tempDir.appendingPathComponent("tokens.yaml")
+            try TokenYAML.write(tokens, to: file)
+            tokenFile = file
+        }
 
         let stagedWorkspace = try WorkspaceStager.prepare(
             workspace: options.workspace,
@@ -401,7 +399,7 @@ enum ContainerArguments {
     static func run(
         options: SandboxRunOptions,
         name: String,
-        tokenFile: URL,
+        tokenFile: URL?,
         tokenEnvironment: [String: String] = [:],
         workspaceSource: URL? = nil
     ) throws -> [String] {
@@ -416,15 +414,19 @@ enum ContainerArguments {
                 source: workspaceSource ?? options.workspace,
                 target: options.workspaceMountPath
             ).containerArgument,
-            "--mount", SandboxMount(
-                source: tokenFile.deletingLastPathComponent(),
-                target: tokenMountPath(for: options.tokenYAMLPath),
-                readOnly: true
-            ).containerArgument,
             "--workdir", options.workspaceMountPath,
-            "--env", "OPENBOX_TOKENS_YAML=\(options.tokenYAMLPath)",
             "--env", "IS_SANDBOX=1",
         ]
+        if let tokenFile {
+            arguments.append(contentsOf: [
+                "--mount", SandboxMount(
+                    source: tokenFile.deletingLastPathComponent(),
+                    target: tokenMountPath(for: options.tokenYAMLPath),
+                    readOnly: true
+                ).containerArgument,
+                "--env", "OPENBOX_TOKENS_YAML=\(options.tokenYAMLPath)",
+            ])
+        }
         for key in tokenEnvironment.keys.sorted() {
             arguments.append(contentsOf: ["--env", "\(key)=\(tokenEnvironment[key] ?? "")"])
         }
@@ -543,19 +545,12 @@ public enum WorkspaceFiles {
 enum TokenYAML {
     static func collect(
         allowlist: [String],
-        from environment: [String: String],
-        githubTokenProvider: (([String: String]) -> String?)? = nil
+        from environment: [String: String]
     ) -> [String: String] {
         var tokens: [String: String] = [:]
         for key in allowlist where isValidEnvironmentKey(key) {
             if let value = environment[key], !value.isEmpty {
                 tokens[key] = value
-            }
-        }
-        if tokens["GH_TOKEN"] == nil, allowlist.contains("GH_TOKEN") {
-            let token = (githubTokenProvider ?? ghAuthToken)(environment)
-            if let token, !token.isEmpty {
-                tokens["GH_TOKEN"] = token
             }
         }
         return tokens
@@ -606,21 +601,4 @@ enum TokenYAML {
         return "\"\(escaped)\""
     }
 
-    private static func ghAuthToken(environment: [String: String]) -> String? {
-        do {
-            let result = try ProcessRunner.run(
-                executable: "gh",
-                arguments: ["auth", "token"],
-                environment: environment,
-                timeout: 5,
-                idleTimeout: nil,
-                streamOutput: false,
-                interactive: false
-            )
-            guard result.exitCode == 0 else { return nil }
-            return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            return nil
-        }
-    }
 }

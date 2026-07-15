@@ -14,14 +14,11 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertEqual(tokens, ["OPENAI_API_KEY": "secret"])
     }
 
-    func testTokenYAMLFallsBackToGitHubCLIForGHToken() {
-        let tokens = TokenYAML.collect(
-            allowlist: ["GH_TOKEN"],
-            from: [:],
-            githubTokenProvider: { _ in "from-gh" }
-        )
+    func testDefaultRunDoesNotForwardCredentials() {
+        let options = SandboxRunOptions(command: ["echo", "ok"])
 
-        XCTAssertEqual(tokens, ["GH_TOKEN": "from-gh"])
+        XCTAssertTrue(options.environmentAllowlist.isEmpty)
+        XCTAssertTrue(TokenYAML.collect(allowlist: options.environmentAllowlist, from: ["OPENAI_API_KEY": "secret"]).isEmpty)
     }
 
     func testTokenYAMLQuoting() {
@@ -66,6 +63,19 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertTrue(args.contains { $0.contains("target=/run/openbox") && $0.contains("readonly") })
         XCTAssertTrue(args.contains { $0.contains("source=/tmp/staged-workspace") })
         XCTAssertTrue(args.contains("OPENAI_API_KEY=secret"))
+    }
+
+    func testContainerArgumentsOmitTokenMountWithoutExplicitCredentials() throws {
+        let options = SandboxRunOptions(command: ["echo", "ok"])
+
+        let args = try ContainerArguments.run(
+            options: options,
+            name: "test-container",
+            tokenFile: nil
+        )
+
+        XCTAssertFalse(args.contains { $0.contains("target=/run/openbox") })
+        XCTAssertFalse(args.contains("OPENBOX_TOKENS_YAML=/run/openbox/tokens.yaml"))
     }
 
     func testMissingImagePullReportsEvents() throws {
