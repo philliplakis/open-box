@@ -65,7 +65,8 @@ final class OpenBoxTests: XCTestCase {
         XCTAssertTrue(args.contains { $0.contains("target=/workspace") })
         XCTAssertTrue(args.contains { $0.contains("target=/run/openbox") && $0.contains("readonly") })
         XCTAssertTrue(args.contains { $0.contains("source=/tmp/staged-workspace") })
-        XCTAssertTrue(args.contains("OPENAI_API_KEY=secret"))
+        XCTAssertTrue(args.contains("OPENAI_API_KEY"))
+        XCTAssertFalse(args.contains("OPENAI_API_KEY=secret"))
     }
 
     func testMissingImagePullReportsEvents() throws {

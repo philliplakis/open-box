@@ -129,7 +129,7 @@ private func startSync(
         let pty = try PTYProcess.start(
             executable: containerExecutable,
             arguments: arguments,
-            environment: hostEnvironment,
+            environment: hostEnvironment.merging(tokens) { _, token in token },
             columns: columns,
             rows: rows
         )

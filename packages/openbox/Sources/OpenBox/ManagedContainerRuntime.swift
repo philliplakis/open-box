@@ -239,7 +239,7 @@ public struct AppleContainerRuntime: ManagedContainerRuntimeProtocol, Sendable {
             ])
         }
         for key in options.environment.keys.sorted() {
-            arguments.append(contentsOf: ["--env", "\(key)=\(options.environment[key] ?? "")"])
+            arguments.append(contentsOf: ["--env", key])
         }
         arguments.append(options.image)
         arguments.append(contentsOf: [
@@ -250,7 +250,7 @@ public struct AppleContainerRuntime: ManagedContainerRuntimeProtocol, Sendable {
         let result = try ProcessRunner.run(
             executable: containerExecutable,
             arguments: arguments,
-            environment: hostEnvironment,
+            environment: hostEnvironment.merging(options.environment) { _, value in value },
             timeout: 120,
             idleTimeout: nil,
             streamOutput: false,

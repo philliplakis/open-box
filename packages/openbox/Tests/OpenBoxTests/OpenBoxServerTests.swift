@@ -353,6 +353,7 @@ final class OpenBoxServerTests: XCTestCase {
         try """
         #!/bin/sh
         echo "$*" >> "$RECORD"
+        echo "allowed=$ALLOWED" >> "$RECORD"
         if [ "$1 $2" = "image inspect" ]; then exit 0; fi
         if [ "$1" = "run" ]; then exit 0; fi
         if [ "$1 $2" = "list --quiet" ]; then echo openbox-box-test; exit 0; fi
@@ -377,7 +378,9 @@ final class OpenBoxServerTests: XCTestCase {
         XCTAssertTrue(calls.contains("--memory 2048M"))
         XCTAssertTrue(calls.contains("--label openbox.managed=true"))
         XCTAssertTrue(calls.contains("--label openbox.box-id=openbox-box-test"))
-        XCTAssertTrue(calls.contains("--env ALLOWED=value"))
+        XCTAssertTrue(calls.contains("--env ALLOWED"))
+        XCTAssertFalse(calls.contains("--env ALLOWED=value"))
+        XCTAssertTrue(calls.contains("allowed=value"))
     }
 
     func testAppleRuntimeOnlyDiscoversLabeledManagedContainers() async throws {

@@ -328,7 +328,7 @@ public struct SandboxRunner: Sendable {
         let result = try ProcessRunner.run(
             executable: containerExecutable,
             arguments: arguments,
-            environment: hostEnvironment,
+            environment: hostEnvironment.merging(tokens) { _, token in token },
             timeout: options.timeoutSeconds,
             idleTimeout: options.idleTimeoutSeconds,
             streamOutput: streamOutput,
@@ -426,7 +426,7 @@ enum ContainerArguments {
             "--env", "IS_SANDBOX=1",
         ]
         for key in tokenEnvironment.keys.sorted() {
-            arguments.append(contentsOf: ["--env", "\(key)=\(tokenEnvironment[key] ?? "")"])
+            arguments.append(contentsOf: ["--env", key])
         }
 
         if options.removeWhenStopped {
