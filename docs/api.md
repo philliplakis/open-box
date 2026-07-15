@@ -3,6 +3,9 @@
 OpenBox can keep Apple containers alive and expose their lifecycle over an
 authenticated REST and WebSocket API.
 
+This is separate from direct `openbox run`: service-created boxes do not inherit
+its default token forwarding, token YAML file, or GitHub CLI token fallback.
+
 ## Start the Server
 
 ```bash
