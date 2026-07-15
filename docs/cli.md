@@ -6,7 +6,7 @@
 
 | Mode | Use it for | Credentials |
 | --- | --- | --- |
-| `openbox run` | A command or shell started directly from this Mac | Forwards only variables named with `--env`. When one resolves, it writes `/run/openbox/tokens.yaml`. |
+| `openbox run` | A command or shell started directly from this Mac | Forwards the direct-run defaults below and writes `/run/openbox/tokens.yaml`. |
 | `openbox serve` + `openbox box …` | Long-lived boxes controlled locally or over a trusted LAN | Forwards nothing by default. Allow each host variable explicitly with `openbox serve --allow-env NAME`. No token YAML or GitHub CLI fallback is used. |
 
 ## Requirements
@@ -109,14 +109,31 @@ Stop leaked `openbox-*` containers and clean stopped containers:
 openbox cache clean
 ```
 
-## Direct-Run Credentials: Explicit Only
+## Direct-Run Secrets Only
 
-`openbox run` forwards no host credentials unless you name them with `--env`.
-When at least one named variable is set, OpenBox also writes those values into a
-read-only YAML file at `/run/openbox/tokens.yaml`.
+Only `openbox run` forwards these host environment variables by default when
+they are set. It also writes them into a read-only YAML file at
+`/run/openbox/tokens.yaml`:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GOOGLE_API_KEY`
+- `GITHUB_TOKEN`
+- `GH_TOKEN`
+
+If `GH_TOKEN` is not set but the GitHub CLI is authenticated on the host,
+OpenBox uses `gh auth token` automatically.
+
+Add another env var:
 
 ```bash
-OPENAI_API_KEY=... openbox run --env OPENAI_API_KEY -- sh -lc 'test -n "$OPENAI_API_KEY" && echo sent'
+MY_SERVICE_TOKEN=... openbox run --env MY_SERVICE_TOKEN -- printenv MY_SERVICE_TOKEN
+```
+
+Disable defaults and pass only explicit names:
+
+```bash
+openbox run --no-default-env --env GITHUB_TOKEN -- gh auth status
 ```
 
 Do not print token values in logs. Treat environment tokens and
@@ -186,7 +203,7 @@ the token, commands, and output. Do not expose it to the public internet or an
 untrusted network.
 
 Service-created boxes receive no host credentials by default. They do not get
-direct-run variables, `/run/openbox/tokens.yaml`, or a GitHub CLI token
+the direct-run defaults, `/run/openbox/tokens.yaml`, or the `gh auth token`
 fallback. Explicitly allow individual environment variable names when starting
 the server, then create a new box:
 

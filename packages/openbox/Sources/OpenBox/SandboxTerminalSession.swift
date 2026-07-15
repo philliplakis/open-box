@@ -101,15 +101,9 @@ private func startSync(
 
     var stagedWorkspace: StagedWorkspace?
     do {
+        let tokenFile = tempDir.appendingPathComponent("tokens.yaml")
         let tokens = TokenYAML.collect(allowlist: launchOptions.environmentAllowlist, from: hostEnvironment)
-        let tokenFile: URL?
-        if tokens.isEmpty {
-            tokenFile = nil
-        } else {
-            let file = tempDir.appendingPathComponent("tokens.yaml")
-            try TokenYAML.write(tokens, to: file)
-            tokenFile = file
-        }
+        try TokenYAML.write(tokens, to: tokenFile)
 
         let preparedWorkspace = try WorkspaceStager.prepare(
             workspace: launchOptions.workspace,
