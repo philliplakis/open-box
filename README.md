@@ -139,7 +139,8 @@ bun test tests/agent
 
 The quick API test uses `gpt-5.4-nano` to drive a managed box. The Codex test
 uses `gpt-5.4-mini` with automatic approval, then validates its change with
-`openbox run`.
+`openbox run`. The suite also makes a read-only `gh api user` request through
+`openbox run`, using the host GitHub CLI authentication fallback.
 
 Run a command in the sandbox:
 
