@@ -134,11 +134,12 @@ With `openbox serve` running locally and `OPENAI_API_KEY` set, run a cheap
 agent against a deliberately broken Bun fixture:
 
 ```bash
-bun scripts/agent-smoke.ts
+OPENBOX_AGENT_TESTS=1 bun test tests/agent
 ```
 
 The script creates a registered managed box, lets `gpt-5.4-nano` use its shell,
-then verifies `bun test` and removes the box and workspace grant.
+then verifies `bun test` and removes the box and workspace grant. The test is
+skipped unless `OPENBOX_AGENT_TESTS=1` is set.
 
 Run a command in the sandbox:
 
