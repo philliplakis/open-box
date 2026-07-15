@@ -130,14 +130,16 @@ swift test
 
 ## Agent Smoke Test
 
-With `OPENAI_API_KEY` set, run Codex against a deliberately broken Bun fixture:
+With `openbox serve` running locally and `OPENAI_API_KEY` set, run both agent
+tests against a deliberately broken Bun fixture:
 
 ```bash
 bun test tests/agent
 ```
 
-The test runs Codex with automatic approval, validates its change with `openbox
-run`, and removes its temporary workspace. It uses `gpt-5.4-mini`.
+The quick API test uses `gpt-5.4-nano` to drive a managed box. The Codex test
+uses `gpt-5.4-mini` with automatic approval, then validates its change with
+`openbox run`.
 
 Run a command in the sandbox:
 
