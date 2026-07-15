@@ -175,3 +175,59 @@ through directly, so prefer non-protected paths for extra mounts.
 
 Completed commands sync workspace changes back, even when they exit non-zero.
 Timed-out commands are stopped and do not sync staged workspace changes back.
+
+## Serve and Managed Boxes
+
+Start the authenticated API on loopback:
+
+```bash
+openbox serve
+openbox token show
+```
+
+Bind it to a trusted LAN only when needed:
+
+```bash
+openbox serve --host 0.0.0.0 --port 7070 --max-cpus 8 --max-memory 8G
+```
+
+This transport is plaintext HTTP. Anyone able to observe the network can read
+the token, commands, and output. Do not expose it to the public internet or an
+untrusted network.
+
+Service-created boxes receive no host credentials by default. Explicitly allow
+individual environment variable names when starting the server:
+
+```bash
+openbox serve --allow-env MY_SERVICE_TOKEN --allow-env GH_TOKEN
+```
+
+Register a host workspace locally, then create a managed box:
+
+```bash
+openbox workspace add ~/src/my-app --name my-app
+openbox workspace list
+openbox box create --workspace ws-… --ttl 900 --cpus 4 --memory 4G
+```
+
+Use and manage the box:
+
+```bash
+openbox box list
+openbox box inspect openbox-box-…
+openbox box exec openbox-box-… -- sh -lc 'npm test'
+openbox box shell openbox-box-…
+openbox box extend openbox-box-… 3600
+openbox box delete openbox-box-…
+```
+
+Remote CLI clients use environment configuration:
+
+```bash
+OPENBOX_URL=http://192.168.1.10:7070 \
+OPENBOX_TOKEN='…' \
+openbox box list
+```
+
+Only the machine running the server can add or remove workspace grants. Remote
+API clients can reference registered workspace IDs but cannot submit host paths.

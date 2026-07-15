@@ -9,7 +9,7 @@
     "check-types": "tsc -b",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy": "bun run build && wrangler pages deploy dist --project-name open-box",
+    "deploy": "bun run build && wrangler pages deploy dist --project-name open-box --branch main",
     "deploy:preview": "bun run build && wrangler pages deploy dist --project-name open-box --branch preview"
   },
   "dependencies": {

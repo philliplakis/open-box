@@ -47,6 +47,7 @@ It requires macOS 26+ with Apple's `container` CLI available on `PATH`.
 Detailed docs:
 
 - [CLI usage](docs/cli.md)
+- [Local API and Swift client](docs/api.md)
 - [Agent guide](docs/agents.md)
 - [Homebrew tap](docs/homebrew.md)
 
@@ -83,6 +84,20 @@ let result = try await SandboxRunner().run(
 
 print(result.stdout)
 ```
+
+Run OpenBox as a local control plane:
+
+```bash
+openbox serve
+openbox workspace add ~/src/my-app --name my-app
+openbox box create --workspace ws-…
+openbox box exec openbox-box-… -- sh -lc 'echo hello > hello.txt'
+```
+
+`serve` listens on `127.0.0.1:7070` by default and requires the bearer token
+shown by `openbox token show`. See the [API guide](docs/api.md) before exposing
+it to a LAN; v0.2 uses plaintext HTTP and is intended only for trusted
+networks.
 
 Report image pulls and live process output:
 

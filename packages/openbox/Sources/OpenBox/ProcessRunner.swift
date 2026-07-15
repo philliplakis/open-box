@@ -7,6 +7,8 @@ struct ProcessRunResult: Sendable, Equatable {
     var stderr: String
     var timedOut: Bool
     var idleTimedOut: Bool
+    var stdoutTruncated: Bool
+    var stderrTruncated: Bool
 }
 
 enum ProcessRunner {
@@ -18,6 +20,7 @@ enum ProcessRunner {
         idleTimeout: TimeInterval?,
         streamOutput: Bool,
         interactive: Bool,
+        outputLimitBytes: Int? = nil,
         outputHandler: (@Sendable (SandboxOutput) -> Void)? = nil
     ) throws -> ProcessRunResult {
         let process = Process()
@@ -38,7 +41,7 @@ enum ProcessRunner {
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
 
-        let output = OutputBuffer()
+        let output = OutputBuffer(limitBytes: outputLimitBytes)
 
         stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
@@ -93,7 +96,9 @@ enum ProcessRunner {
             stdout: String(decoding: snapshot.stdout, as: UTF8.self),
             stderr: String(decoding: snapshot.stderr, as: UTF8.self),
             timedOut: timedOut,
-            idleTimedOut: idleTimedOut
+            idleTimedOut: idleTimedOut,
+            stdoutTruncated: snapshot.stdoutTruncated,
+            stderrTruncated: snapshot.stderrTruncated
         )
     }
 
@@ -111,6 +116,13 @@ private final class OutputBuffer: @unchecked Sendable {
     private var stdout = Data()
     private var stderr = Data()
     private var lastOutputDate = Date()
+    private let limitBytes: Int?
+    private var stdoutTruncated = false
+    private var stderrTruncated = false
+
+    init(limitBytes: Int?) {
+        self.limitBytes = limitBytes
+    }
 
     var lastOutput: Date {
         lock.lock()
@@ -120,21 +132,40 @@ private final class OutputBuffer: @unchecked Sendable {
 
     func appendStdout(_ data: Data) {
         lock.lock()
-        stdout.append(data)
+        append(data, to: &stdout, truncated: &stdoutTruncated)
         lastOutputDate = Date()
         lock.unlock()
     }
 
     func appendStderr(_ data: Data) {
         lock.lock()
-        stderr.append(data)
+        append(data, to: &stderr, truncated: &stderrTruncated)
         lastOutputDate = Date()
         lock.unlock()
     }
 
-    func snapshot() -> (stdout: Data, stderr: Data) {
+    func snapshot() -> (
+        stdout: Data,
+        stderr: Data,
+        stdoutTruncated: Bool,
+        stderrTruncated: Bool
+    ) {
         lock.lock()
         defer { lock.unlock() }
-        return (stdout, stderr)
+        return (stdout, stderr, stdoutTruncated, stderrTruncated)
+    }
+
+    private func append(_ data: Data, to buffer: inout Data, truncated: inout Bool) {
+        guard let limitBytes else {
+            buffer.append(data)
+            return
+        }
+        let remaining = max(0, limitBytes - buffer.count)
+        if remaining > 0 {
+            buffer.append(data.prefix(remaining))
+        }
+        if data.count > remaining {
+            truncated = true
+        }
     }
 }

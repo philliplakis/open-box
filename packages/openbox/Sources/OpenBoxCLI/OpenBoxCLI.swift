@@ -1,6 +1,8 @@
 import Darwin
 import Foundation
 import OpenBox
+import OpenBoxClient
+import OpenBoxServer
 
 @main
 enum OpenBoxCLI {
@@ -20,6 +22,11 @@ enum OpenBoxCLI {
             return
         }
         args.removeFirst()
+
+        if let exitCode = try await APICommands.handle(command: command, arguments: args) {
+            if exitCode != 0 { Foundation.exit(exitCode) }
+            return
+        }
 
         let runner = SandboxRunner(streamOutput: true) { event in
             if case .pullingImage(let image) = event {
@@ -261,6 +268,10 @@ enum OpenBoxCLI {
               openbox stop <name>
               openbox status <name>
               openbox cache clean
+              openbox serve [options]
+              openbox token show|rotate
+              openbox workspace add|list|remove
+              openbox box create|list|inspect|exec|shell|extend|delete
 
             Run `openbox run --help` for run options.
             """
