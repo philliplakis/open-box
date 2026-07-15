@@ -128,6 +128,18 @@ Build and test it:
 swift test
 ```
 
+## Agent Smoke Test
+
+With `openbox serve` running locally and `OPENAI_API_KEY` set, run a cheap
+agent against a deliberately broken Bun fixture:
+
+```bash
+bun scripts/agent-smoke.ts
+```
+
+The script creates a registered managed box, lets `gpt-5.4-nano` use its shell,
+then verifies `bun test` and removes the box and workspace grant.
+
 Run a command in the sandbox:
 
 ```bash
