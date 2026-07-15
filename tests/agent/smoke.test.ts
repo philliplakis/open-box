@@ -1,9 +1,7 @@
 import { expect, test } from "bun:test"
 import { join } from "node:path"
 
-const agentTest = process.env.OPENBOX_AGENT_TESTS === "1" ? test : test.skip
-
-agentTest("an agent repairs a Bun project in a managed box", async () => {
+test("Codex repairs a Bun project in an OpenBox sandbox", async () => {
   const root = join(import.meta.dir, "..", "..")
   const run = Bun.spawn([Bun.which("bun") ?? "bun", "scripts/agent-smoke.ts"], {
     cwd: root,

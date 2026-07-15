@@ -130,16 +130,14 @@ swift test
 
 ## Agent Smoke Test
 
-With `openbox serve` running locally and `OPENAI_API_KEY` set, run a cheap
-agent against a deliberately broken Bun fixture:
+With `OPENAI_API_KEY` set, run Codex against a deliberately broken Bun fixture:
 
 ```bash
-OPENBOX_AGENT_TESTS=1 bun test tests/agent
+bun test tests/agent
 ```
 
-The script creates a registered managed box, lets `gpt-5.4-nano` use its shell,
-then verifies `bun test` and removes the box and workspace grant. The test is
-skipped unless `OPENBOX_AGENT_TESTS=1` is set.
+The test runs Codex with automatic approval, validates its change with `openbox
+run`, and removes its temporary workspace. It uses `gpt-5.4-mini`.
 
 Run a command in the sandbox:
 
