@@ -1,7 +1,9 @@
+import Darwin
 import Foundation
 import Hummingbird
 import HummingbirdRouter
 import HummingbirdWebSocket
+import Logging
 import OpenBox
 import OpenBoxClient
 
@@ -30,10 +32,16 @@ public struct OpenBoxHTTPServer: Sendable {
         try await manager.start()
         let httpRouter = Self.makeHTTPRouter(manager: manager, token: token)
         let webSocketRouter = Self.makeWebSocketRouter(manager: manager, token: token)
+        var logger = Logger(label: "openbox")
+        logger.logLevel = .critical
         let application = Application(
             router: httpRouter,
             server: .http1WebSocketUpgrade(webSocketRouter: webSocketRouter),
-            configuration: .init(address: .hostname(configuration.host, port: configuration.port))
+            configuration: .init(address: .hostname(configuration.host, port: configuration.port)),
+            onServerRunning: { _ in
+                fputs(Self.startupMessage(host: configuration.host, port: configuration.port, color: isatty(STDERR_FILENO) == 1), stderr)
+            },
+            logger: logger
         )
         do {
             try await application.runService()
@@ -187,6 +195,14 @@ public struct OpenBoxHTTPServer: Sendable {
 
     private static func isLoopback(_ host: String) -> Bool {
         host == "127.0.0.1" || host == "::1" || host.lowercased() == "localhost"
+    }
+
+    static func startupMessage(host: String, port: Int, color: Bool) -> String {
+        let address = "http://\(host):\(port)"
+        guard color else {
+            return "OpenBox ready  \(address)  ·  bearer auth required\n"
+        }
+        return "\u{001B}[1;36m◇ OpenBox\u{001B}[0m  \u{001B}[2mready\u{001B}[0m  \u{001B}[36m\(address)\u{001B}[0m  \u{001B}[2m· bearer auth required\u{001B}[0m\n"
     }
 }
 

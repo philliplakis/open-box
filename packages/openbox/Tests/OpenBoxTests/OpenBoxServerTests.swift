@@ -8,6 +8,13 @@ import OpenBoxClient
 import XCTest
 
 final class OpenBoxServerTests: XCTestCase {
+    func testStartupMessageUsesOpenBoxBrand() {
+        XCTAssertEqual(
+            OpenBoxHTTPServer.startupMessage(host: "127.0.0.1", port: 7070, color: false),
+            "OpenBox ready  http://127.0.0.1:7070  ·  bearer auth required\n"
+        )
+    }
+
     func testManagedLifecycleAndResourceBounds() async throws {
         let stateURL = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: stateURL) }

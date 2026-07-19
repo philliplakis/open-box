@@ -2,6 +2,13 @@
 
 `openbox` runs commands inside an Apple-container-backed Linux sandbox on macOS.
 
+## Two Execution Modes
+
+| Mode | Use it for | Credentials |
+| --- | --- | --- |
+| `openbox run` | A command or shell started directly from this Mac | Forwards the direct-run defaults below and writes `/run/openbox/tokens.yaml`. |
+| `openbox serve` + `openbox box …` | Long-lived boxes controlled locally or over a trusted LAN | Forwards nothing by default. Allow each host variable explicitly with `openbox serve --allow-env NAME`. No token YAML or GitHub CLI fallback is used. |
+
 ## Requirements
 
 - macOS 26+
@@ -50,7 +57,7 @@ brew install openbox
 
 See [Homebrew tap](homebrew.md) for release and tap setup details.
 
-## Run Commands
+## Direct Runs: `openbox run`
 
 Run in the current directory:
 
@@ -102,10 +109,10 @@ Stop leaked `openbox-*` containers and clean stopped containers:
 openbox cache clean
 ```
 
-## Secrets
+## Direct-Run Secrets Only
 
-By default, OpenBox forwards these host environment variables into the
-container when they are set, and also writes them into a read-only YAML file at
+Only `openbox run` forwards these host environment variables by default when
+they are set. It also writes them into a read-only YAML file at
 `/run/openbox/tokens.yaml`:
 
 - `OPENAI_API_KEY`
@@ -176,7 +183,7 @@ through directly, so prefer non-protected paths for extra mounts.
 Completed commands sync workspace changes back, even when they exit non-zero.
 Timed-out commands are stopped and do not sync staged workspace changes back.
 
-## Serve and Managed Boxes
+## Managed Boxes: `openbox serve` + `openbox box`
 
 Start the authenticated API on loopback:
 
@@ -195,8 +202,10 @@ This transport is plaintext HTTP. Anyone able to observe the network can read
 the token, commands, and output. Do not expose it to the public internet or an
 untrusted network.
 
-Service-created boxes receive no host credentials by default. Explicitly allow
-individual environment variable names when starting the server:
+Service-created boxes receive no host credentials by default. They do not get
+the direct-run defaults, `/run/openbox/tokens.yaml`, or the `gh auth token`
+fallback. Explicitly allow individual environment variable names when starting
+the server, then create a new box:
 
 ```bash
 openbox serve --allow-env MY_SERVICE_TOKEN --allow-env GH_TOKEN
