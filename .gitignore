@@ -21,6 +21,7 @@ coverage
 
 # Build outputs
 .build/
+.swiftpm/
 .next/
 out/
 build
